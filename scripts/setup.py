@@ -285,6 +285,14 @@ def machine_report():
                 info["ram_total_mib"] = int(ms.total // (1024 * 1024))
         except (OSError, AttributeError):
             pass
+    if sys.platform.startswith("linux"):
+        try:
+            for line in Path("/proc/meminfo").read_text().splitlines():
+                if line.startswith("MemTotal:"):
+                    info["ram_total_mib"] = int(line.split()[1]) // 1024
+                    break
+        except (OSError, ValueError, IndexError):
+            pass
     return info
 
 
@@ -341,7 +349,7 @@ def dry_run(lock, models_dir, bin_dir, no_cudnn, out=print):
         have = part.stat().st_size if part.is_file() else 0
         need_models += max(m["bytes"] - have, 0)
         out("  would fetch  %s (%.2f GiB%s)" % (m["name"], m["bytes"] / 2**30, ", resumes a .part file" if have else ""))
-    if not (find_sd_cli(bin_dir) and has_cudart(bin_dir)):
+    if not sys.platform.startswith("linux") and not (find_sd_cli(bin_dir) and has_cudart(bin_dir)):
         for e in lock["engine"]:
             need_bin += e["bytes"] * 2
             out("  would fetch  %s (%.1f MiB)" % (e["name"], e["bytes"] / 2**20))
@@ -388,6 +396,13 @@ def main(argv=None):
         print("ERROR: cannot read lock file: %s. Fix: run from a complete copy of the repository, or pass --lock FILE." % e)
         return 2
     models_dir, bin_dir = Path(a.models_dir), Path(a.bin_dir)
+    if sys.platform.startswith("linux"):
+        if a.only in ("engine", "cudnn"):
+            print("ERROR: Windows binary archives are not supported on Linux. See docs/LINUX.md.")
+            return 2
+        a.only = "models"
+        a.no_cudnn = True
+        print("Linux: model setup only; build the native engine with bash scripts/build-linux.sh.")
     if a.dry_run:
         return dry_run(lock, models_dir, bin_dir, a.no_cudnn)
     do_models = a.only in (None, "models")
