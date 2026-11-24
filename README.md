@@ -1,5 +1,8 @@
 [Türkçe](README.tr.md) · **English** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [Italiano](README.it.md) · [Português](README.pt.md) · [Русский](README.ru.md) · [Polski](README.pl.md) · [Nederlands](README.nl.md) · [Dansk](README.da.md) · [Norsk](README.nb.md) · [Svenska](README.sv.md) · [Suomi](README.fi.md) · [Ελληνικά](README.el.md) · [العربية](README.ar.md) · [עברית](README.he.md) · [हिन्दी](README.hi.md) · [中文](README.zh.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [ไทย](README.th.md) · [Tiếng Việt](README.vi.md) · [Bahasa Indonesia](README.id.md) · [Bahasa Melayu](README.ms.md) · [Tagalog](README.tl.md) · [မြန်မာ](README.my.md) · [ខ្មែរ](README.km.md) · [ລາວ](README.lo.md) · [Kiswahili](README.sw.md)
 
+> **Turing/Linux fork (experimental):** Native CUDA builds for GTX 1650-class GPUs (SM 75) are now available as source-build scripts. See [Linux setup and validation](docs/LINUX.md). Upstream Windows/Pascal measurements below are not Turing benchmarks.
+
+
 # Sınırsız Foto
 
 **Z-Image-Turbo (Q8_0 GGUF) text-to-image at 768x1344 on a 4 GB GTX 1050 Ti (Pascal, sm_61), with stable-diffusion.cpp, on Windows.** Measured on a 16 GB RAM laptop, where the process uses about 11 GB of RAM. The same seed gives the same pixels, pixel for pixel; the measurements and the engine patches are published, the downloads are pinned with sha256, and an AI coding agent can install it step by step.
