@@ -46,6 +46,7 @@ DEFAULT_W, DEFAULT_H = 768, 1344           # portrait; landscape is 1344x768
 TESTED_PIXELS = 1024 * 1024                # tested: 768x1344, 1344x768, 1024x1024
 VAE_MODES = ("auto", "tiled", "legacy")
 CUDNN_DLL = "cudnn64_9.dll"
+ENGINE_NAME = "sd-cli.exe" if os.name == "nt" else "sd-cli"
 MAX_TILE_PIXELS = 1024 * 768               # largest VAE tile area measured to fit on 4 GB (two tiles per image)
 TILE_QUANTUM = 16
 # Environment for the engine (all read by the patched engine, see patches/README.md).
@@ -179,14 +180,23 @@ def slug(text):
 
 def find_sd_cli(bin_dir):
     bin_dir = Path(bin_dir)
-    if (bin_dir / "sd-cli.exe").is_file():
-        return bin_dir / "sd-cli.exe"
-    for p in sorted(bin_dir.rglob("sd-cli.exe")):
-        return p
+    if (bin_dir / ENGINE_NAME).is_file():
+        return (bin_dir / ENGINE_NAME).resolve()
+    for p in sorted(bin_dir.rglob(ENGINE_NAME)):
+        if p.is_file():
+            return p.resolve()
     return None
 
 
 def free_ram_mib():
+    if sys.platform.startswith("linux"):
+        try:
+            for line in Path("/proc/meminfo").read_text().splitlines():
+                if line.startswith("MemAvailable:"):
+                    return int(line.split()[1]) // 1024
+        except (OSError, ValueError, IndexError):
+            pass
+        return None
     if os.name != "nt":
         return None
 
@@ -305,7 +315,7 @@ def main(argv=None):
 
     sd_cli = find_sd_cli(a.bin_dir)
     if sd_cli is None:
-        print("ERROR: sd-cli.exe not found in %s. Run: python scripts/setup.py" % a.bin_dir)
+        print("ERROR: %s not found in %s. See docs/LINUX.md on Linux." % (ENGINE_NAME, a.bin_dir))
         return 2
     for f in MODEL_FILES.values():
         if not (Path(a.models_dir) / f).is_file():
@@ -335,7 +345,7 @@ def main(argv=None):
     prompt_path = out / "prompt.txt"
     prompt_path.write_text(prompt, encoding="utf-8")
     image = out / "image.png"
-    cudnn_dir = find_cudnn(a.bin_dir)
+    cudnn_dir = find_cudnn(a.bin_dir) if os.name == "nt" else None
     vae_mode = resolve_vae_mode(a.vae, cudnn_dir)
     if vae_mode != a.vae:
         print("WARNING: %s not found in %s; using --vae legacy (slower VAE, small tiles). Run: python scripts/setup.py"
@@ -347,6 +357,8 @@ def main(argv=None):
     if cudnn_dir is not None and cudnn_dir != sd_cli.parent:
         dll_dirs.append(str(cudnn_dir))
     env["PATH"] = os.pathsep.join(dll_dirs + [env.get("PATH", "")])
+    if sys.platform.startswith("linux"):
+        env["LD_LIBRARY_PATH"] = os.pathsep.join(dll_dirs + ([env["LD_LIBRARY_PATH"]] if env.get("LD_LIBRARY_PATH") else []))
 
     print("%dx%d seed=%d steps=%d -> %s" % (a.width, a.height, a.seed, STEPS, out))
     print("Started (VAE mode: %s). Expected about 3 to 4 minutes on a GTX 1050 Ti (measured). Log: %s"
